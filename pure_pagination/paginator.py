@@ -2,6 +2,7 @@ import collections
 
 from django.core.paginator import InvalidPage, EmptyPage, PageNotAnInteger
 from django.conf import settings
+from django.core.cache import cache
 
 from math import ceil
 import functools
@@ -57,7 +58,13 @@ class Paginator(object):
         "Returns the total number of objects, across all pages."
         if self._count is None:
             try:
-                self._count = self.object_list.count()
+                if not self.request.GET.get('name') and cache.get(self.request.path):
+                    # print('cache OK')
+                    self._count = cache.get(self.request.path)
+                else:
+                    # print('cache NG')
+                    self._count = self.object_list.count()
+                    cache.set(self.request.path, self._count)
             except (AttributeError, TypeError):
                 # AttributeError if object_list has no count() method.
                 # TypeError if object_list.count() requires arguments
